@@ -3,7 +3,7 @@
 args <- commandArgs(trailingOnly=TRUE) #collect data from arguments
 #first argument: nchromosomes
 #second argument: file with the total length of each chromosome, on rows.
-#third argument: file with the name of marker, number of chromosome, cM and Physical position (in bp)
+#third argument: file with the name of marker, number of chromosome, cM (cummulative) and Physical position (in bp)
 #fourth and rest arguments: size or sizes (in bp) of the windows.
 
 #function derivative
@@ -16,6 +16,12 @@ derivative.triangle <- function(f1,f2,p1,p2) {
 #len.chr <- array(c(35383099,26193771,29387469,33123231,28337775,35939859,26773857,32513408,24107567,25362316, 31442130,26400393),dim=c(nchr)) #the length of each chromosome
 #RecMap <- read.table(file="marker_all_LG.txt",header=TRUE)
 #window.sizes <- c(5e4,1e5,5e5,1e6,5e6)
+#args <- array(NA,dim=c(5))
+#args[1] <- "29"
+#args[2] <- "./chromlen.txt"
+#args[3] <- "./cattle_rec_map_female.txt"
+#args[4] <- "500000"
+#args[5] <- "1000000"
 
 nchr <- as.numeric(args[1])
 len.chr <- read.table(file=args[2],header=TRUE)
@@ -29,7 +35,7 @@ show(len.chr)
 #show(window.sizes)
 show(length(len.chr))
 
-len.chr.cum <- len.chr
+len.chr.cum <- len.chr + 0.0
 for(i in 2:length(len.chr)) {
 	len.chr.cum[i] <- len.chr.cum[i] + len.chr.cum[i-1]
 }
@@ -40,7 +46,8 @@ RecMap <- RecMap[,c(2,3,4)]
 head(RecMap)
 
 #include the first bp position
-initpositions <- data.frame(cbind(LG=c(1:nchr),cM=rep(0,nchr),ChrPos=rep(1,nchr)))
+initpositions <- data.frame(cbind(c(1:nchr),rep(0,nchr),rep(1,nchr)))
+colnames(initpositions) <- colnames(RecMap)
 RecMap  <-  rbind(RecMap,as.data.frame(initpositions))
 RecMap <- RecMap[order(RecMap[,1],RecMap[3]),] #sort using the first and the third columns
 head(RecMap)
@@ -58,12 +65,14 @@ while(i<length(RecMap2[,1])) {
 dim(RecMap)
 dim(RecMap2)
 
+#window <- window.sizes[1]
 for(window in window.sizes) {
 	rec.win <- data.frame(cbind(chr=0,start=0,end=0,len=0,recw=0))
 	nwin <- 1
 	
 	pdf(sprintf("RecMap_%d.pdf",window))
 	par(mar=c(5,4,4,5))
+	#chr <- 1
 	for(chr in 1:nchr) {
 		#do the spline:
 		ww <- array(1,dim=c(floor(len.chr[chr]/window)+1))
