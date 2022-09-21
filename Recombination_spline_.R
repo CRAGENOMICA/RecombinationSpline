@@ -23,10 +23,20 @@ derivative.triangle <- function(f1,f2,p1,p2) {
 #args[4] <- "500000"
 #args[5] <- "1000000"
 
+args[1] <- "8"
+args[2] <- "~/Desktop/Almond/Recombination_Map/Pdulcis_lengthchr.txt"
+args[3] <- "~/Desktop/Almond/Recombination_Map/GeneticMap_SNPs_vs_pdulcis9_filtered.txt"
+args[4] <- "50000"
+args[5] <- "100000"
+args[6] <- "200000"
+args[7] <- "500000"
+args[8] <- "1000000"
+
 nchr <- as.numeric(args[1])
 len.chr <- read.table(file=args[2],header=TRUE)
 len.chr <- as.matrix(len.chr)
 RecMap <- read.table(file=args[3],header=TRUE)
+colnames(RecMap) <- c("ID","chr","cM","position")
 window.sizes <- c(as.numeric(args[4:length(args)]))
 
 #show(nchr)
@@ -46,10 +56,11 @@ RecMap <- RecMap[,c(2,3,4)]
 head(RecMap)
 
 #include the first bp position
-initpositions <- data.frame(cbind(c(1:nchr),rep(0,nchr),rep(1,nchr)))
+initpositions <- data.frame(cbind(c(1:nchr),rep(0,nchr),rep(1e-3,nchr)))
 colnames(initpositions) <- colnames(RecMap)
 RecMap  <-  rbind(RecMap,as.data.frame(initpositions))
-RecMap <- RecMap[order(RecMap[,1],RecMap[3]),] #sort using the first and the third columns
+RecMap <- RecMap[order(RecMap$chr,RecMap$position),] #sort using the first and the position columns
+RecMapb <- RecMap[order(RecMap$chr,RecMap$cM),] #sort using the first and the cM columns
 head(RecMap)
 
 #erasing those positions with cM smaller than previous: (...)
@@ -64,6 +75,20 @@ while(i<length(RecMap2[,1])) {
 }
 dim(RecMap)
 dim(RecMap2)
+
+RecMap2b <- RecMapb
+i <- 2
+while(i<length(RecMap2b[,1])) {
+  if((RecMap2b[i,1] == RecMap2b[i-1,1]) && (RecMap2b[i,3] < RecMap2b[i-1,3])) {
+    RecMap2b <- RecMap2b[-i,]
+  } else {
+    i <- i + 1
+  }
+}
+dim(RecMapb)
+dim(RecMap2b)
+
+if(dim(RecMap2)[2] < dim(RecMap2b)[2]) RecMap2 <- RecMapb
 
 #window <- window.sizes[1]
 for(window in window.sizes) {
@@ -80,7 +105,7 @@ for(window in window.sizes) {
 		last.position <- RecMap2[RecMap2[,1]==chr,3][length(RecMap2[RecMap2[,1]==chr,3])]
 		ww <- ww[ww < last.position]
 		ww <- c(ww,last.position)
-		cum.rec <- spline(RecMap2[RecMap2[,1]==chr,3],RecMap2[RecMap2[,1]==chr,2],method="hyman",xout=ww)
+		cum.rec <- spline(x=RecMap2[RecMap2[,1]==chr,3],y=RecMap2[RecMap2[,1]==chr,2],method="hyman",xout=ww)
 
 		#plot the cummulative curves
 		plot(RecMap2[RecMap2[,1]==chr,3],RecMap2[RecMap2[,1]==chr,2],main=sprintf("Cummulative Recombination Map\n Chr%d Windows of %0.f bp",chr,window),xlab=sprintf("Physical Distance (bp)"),ylab=sprintf("Genetical Distance (cM)"))
@@ -118,7 +143,7 @@ for(window in window.sizes) {
 	#include one more row to start each plot by NA recw
 	initpositions <- data.frame(cbind(chr=c(1:nchr),start=rep(0,nchr),end=rep(0,nchr),len=rep(0,nchr),recw=rep(NA,nchr)))
 	rec.win2  <-  rbind(rec.win,as.data.frame(initpositions))
-	rec.win2 <- rec.win2[order(rec.win2[,1],rec.win2[2]),] #sort using the first and the second columns
+	rec.win2 <- rec.win2[order(rec.win2[,1],rec.win2[,2]),] #sort using the first and the second columns
 	start_chr <- c(which(rec.win2[,2]==1),length(rec.win2[,2]))
 	positions <- array(rec.win2[,2],dim=c(length(rec.win2[,1])))
 	for(w in 1:length(rec.win2[,2])) {
